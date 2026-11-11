@@ -1,517 +1,234 @@
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/**
- * QuizSpiel – Konsolenbasiertes Multiple-Choice-Quizspiel.
- *
- * <p>Dieses Programm liest Fragen aus einer Textdatei, stellt sie dem Spieler
- * in zufälliger Reihenfolge vor und speichert das Ergebnis dauerhaft in einer
- * Highscore-Datei. Alle Ein- und Ausgaben erfolgen über die Konsole.</p>
- *
- * <p>Verwendung:</p>
- * <pre>
- *   javac -encoding UTF-8 src/QuizSpiel.java -d out
- *   java -cp out QuizSpiel
- * </pre>
- *
- * @version 1.0
- */
 public class QuizSpiel {
 
-    // =========================================================
-    //  KONSTANTEN
-    // =========================================================
-
-    /** Pfad zur Fragendatei (relativ zum Arbeitsverzeichnis). */
-    private static final String FRAGEN_DATEI = "data/fragen.txt";
-
-    /** Pfad zur Highscore-Datei (relativ zum Arbeitsverzeichnis). */
-    private static final String HIGHSCORE_DATEI = "data/highscore.txt";
-
-    /** Maximale Anzahl Fragen pro Spielrunde. */
-    private static final int MAX_FRAGEN = 10;
-
-    /** Punkte je richtig beantworteter Frage. */
-    private static final int PUNKTE_PRO_FRAGE = 1;
-
-    /** Anzahl der angezeigten Plätze in der Highscore-Liste. */
-    private static final int TOP_LISTE = 5;
-
-    /**
-     * Gemeinsamer Scanner für die gesamte Laufzeit des Programms.
-     * Ein einziger Scanner verhindert Ressourcen-Konflikte beim Lesen von System.in.
-     */
-    private static final Scanner EINGABE = new Scanner(System.in, StandardCharsets.UTF_8);
+    // GLOBALE VARIABLEN
+    static String FRAGEN_DATEI = "data/fragen.txt";
+    static String HIGHSCORE_DATEI = "data/highscore.txt";
+    static Scanner scanner = new Scanner(System.in);
 
     // =========================================================
-    //  INTERNE HILFSKLASSEN
+    // 1. AMINE: HAUPTMENÜ & STEUERUNG
     // =========================================================
-
-    /**
-     * Repräsentiert eine einzelne Quiz-Frage mit vier Antwortmöglichkeiten.
-     */
-    static class Frage {
-
-        /** Der Fragetext. */
-        String frageText;
-
-        /** Die vier Antwortoptionen (Index 0–3 entspricht Antwort 1–4). */
-        String[] antworten;
-
-        /**
-         * Der nullbasierte Index der richtigen Antwort.
-         * (0 = Antwort 1, 1 = Antwort 2, …)
-         */
-        int richtigeAntwortIndex;
-
-        /**
-         * Erstellt eine neue Frage.
-         *
-         * @param frageText            Der Fragetext.
-         * @param antworten            Array mit genau 4 Antwortoptionen.
-         * @param richtigeAntwortIndex Nullbasierter Index der richtigen Antwort (0–3).
-         */
-        Frage(String frageText, String[] antworten, int richtigeAntwortIndex) {
-            this.frageText = frageText;
-            this.antworten = antworten;
-            this.richtigeAntwortIndex = richtigeAntwortIndex;
-        }
-    }
-
-    /**
-     * Repräsentiert einen einzelnen Highscore-Eintrag mit Name und Punktzahl.
-     * Implementiert {@link Comparable} für die automatische Sortierung.
-     */
-    static class HighscoreEintrag implements Comparable<HighscoreEintrag> {
-
-        /** Der Name des Spielers. */
-        String name;
-
-        /** Die erreichte Punktzahl. */
-        int punkte;
-
-        /**
-         * Erstellt einen neuen Highscore-Eintrag.
-         *
-         * @param name   Name des Spielers.
-         * @param punkte Erreichte Punkte.
-         */
-        HighscoreEintrag(String name, int punkte) {
-            this.name = name;
-            this.punkte = punkte;
-        }
-
-        /**
-         * Vergleicht zwei Einträge absteigend nach Punkten.
-         * Höhere Punktzahl kommt zuerst (kleinerer Rang).
-         *
-         * @param other Der andere Eintrag.
-         * @return Negativer Wert wenn {@code this} mehr Punkte hat, positiver wenn weniger.
-         */
-        @Override
-        public int compareTo(HighscoreEintrag other) {
-            return Integer.compare(other.punkte, this.punkte); // absteigend
-        }
-    }
-
-    // =========================================================
-    //  HAUPTPROGRAMM
-    // =========================================================
-
-    /**
-     * Einstiegspunkt des Programms. Initialisiert die Hauptschleife und
-     * zeigt das Hauptmenü an, bis der Benutzer das Programm beendet.
-     *
-     * @param args Kommandozeilenargumente (werden nicht verwendet).
-     */
     public static void main(String[] args) {
-        System.out.println("╔══════════════════════════════════╗");
-        System.out.println("║      Willkommen bei JavaQuiz!    ║");
-        System.out.println("╚══════════════════════════════════╝");
+        System.out.println("=== LERNQUIZ ZUR PRUEFUNGSVORBEREITUNG ===");
 
-        boolean laufe = true;
-        while (laufe) {
-            int auswahl = zeigeHauptmenue();
-            switch (auswahl) {
-                case 1 -> spieleQuiz();
-                case 2 -> zeigeHighscores();
-                case 3 -> {
-                    System.out.println("\nAuf Wiedersehen! 👋");
-                    laufe = false;
-                }
-                default -> System.out.println("  ❌ Ungültige Auswahl. Bitte 1, 2 oder 3 eingeben.");
-            }
-        }
-    }
+        boolean laeuft = true;
+        while (laeuft) {
+            System.out.println("\n--- HAUPTMENÜ ---");
+            System.out.println("1) Neues Quiz starten");
+            System.out.println("2) Highscores anzeigen");
+            System.out.println("3) Beenden");
+            System.out.print("Deine Auswahl: ");
 
-    // =========================================================
-    //  HAUPTMENÜ
-    // =========================================================
+            String eingabe = scanner.nextLine();
 
-    /**
-     * Zeigt das Hauptmenü an und liest die Auswahl des Benutzers ein.
-     * Bei einer nicht-numerischen Eingabe wird -1 zurückgegeben,
-     * sodass die Hauptschleife eine passende Fehlermeldung anzeigen kann.
-     *
-     * @return Die gewählte Menüoption (1, 2 oder 3), oder -1 bei ungültiger Eingabe.
-     */
-    static int zeigeHauptmenue() {
-        System.out.println();
-        System.out.println("┌─────────────────────────────────┐");
-        System.out.println("│           HAUPTMENÜ             │");
-        System.out.println("├─────────────────────────────────┤");
-        System.out.println("│  1) Neues Spiel starten         │");
-        System.out.println("│  2) Highscores anzeigen         │");
-        System.out.println("│  3) Beenden                     │");
-        System.out.println("└─────────────────────────────────┘");
-        System.out.print("Ihre Auswahl: ");
-
-        if (!EINGABE.hasNextLine()) {
-            return 3; // Kein weiterer Input (z.B. bei Pipe-Ende) → sauber beenden
-        }
-        String eingabe = EINGABE.nextLine().trim();
-
-        try {
-            return Integer.parseInt(eingabe);
-        } catch (NumberFormatException e) {
-            return -1; // Ungültige Eingabe
-        }
-    }
-
-    // =========================================================
-    //  SPIELABLAUF
-    // =========================================================
-
-    /**
-     * Führt eine vollständige Quiz-Runde durch:
-     * Spielername abfragen, Fragen laden und mischen, Fragen stellen,
-     * Ergebnis berechnen und dauerhaft speichern.
-     *
-     * <p>Bei Fehlern (z.B. fehlende Fragendatei oder keine gültigen Fragen)
-     * wird eine verständliche Meldung ausgegeben und sicher ins Hauptmenü
-     * zurückgekehrt, ohne das Programm zu beenden.</p>
-     */
-    static void spieleQuiz() {
-        // --- Spielernamen abfragen ---
-        System.out.print("\nBitte Ihren Namen eingeben: ");
-        String spielerName;
-        if (EINGABE.hasNextLine()) {
-            spielerName = EINGABE.nextLine().trim();
-        } else {
-            spielerName = "Anonym";
-        }
-        if (spielerName.isEmpty()) {
-            spielerName = "Anonym";
-        }
-
-        // --- Fragen laden ---
-        List<Frage> alleFragen = ladeFragen(FRAGEN_DATEI);
-
-        if (alleFragen.isEmpty()) {
-            System.out.println("❌ FEHLER: Keine Fragen gefunden. Bitte prüfen Sie die Datei: " + FRAGEN_DATEI);
-            return; // Zurück ins Hauptmenü
-        }
-
-        // --- Fragen mischen und auf MAX_FRAGEN begrenzen ---
-        Collections.shuffle(alleFragen);
-        List<Frage> rundenFragen = alleFragen.subList(0, Math.min(MAX_FRAGEN, alleFragen.size()));
-
-        System.out.println();
-        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        System.out.println("🎮 Spieler : " + spielerName);
-        System.out.printf("📋 Fragen  : %d  |  Viel Erfolg!%n", rundenFragen.size());
-        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-        int punkteGesamt = 0;
-        int richtigeAntworten = 0;
-
-        // --- Fragen einzeln stellen ---
-        for (int i = 0; i < rundenFragen.size(); i++) {
-            Frage frage = rundenFragen.get(i);
-
-            System.out.println();
-            System.out.printf("Frage %d von %d: %s%n", i + 1, rundenFragen.size(), frage.frageText);
-            for (int j = 0; j < frage.antworten.length; j++) {
-                System.out.printf("  %d) %s%n", j + 1, frage.antworten[j]);
-            }
-            System.out.print("Ihre Antwort (1-4): ");
-
-            // Antwort einlesen
-            String antwortEingabe = EINGABE.hasNextLine() ? EINGABE.nextLine().trim() : "";
-            int antwortNummer = -1;
-
-            try {
-                antwortNummer = Integer.parseInt(antwortEingabe);
-            } catch (NumberFormatException e) {
-                // Keine gültige Zahl – bleibt bei -1
-            }
-
-            boolean gueltigeEingabe = (antwortNummer >= 1 && antwortNummer <= 4);
-
-            if (!gueltigeEingabe) {
-                System.out.printf("⚠️  Ungültige Eingabe \"%s\" – wird als falsch gewertet.%n", antwortEingabe);
-            }
-
-            boolean korrekt = gueltigeEingabe && ((antwortNummer - 1) == frage.richtigeAntwortIndex);
-
-            if (korrekt) {
-                System.out.println("✅ Richtig!");
-                richtigeAntworten++;
-                punkteGesamt += PUNKTE_PRO_FRAGE;
+            if (eingabe.equals("1")) {
+                spieleQuiz();
+            } else if (eingabe.equals("2")) {
+                zeigeHighscores();
+            } else if (eingabe.equals("3")) {
+                System.out.println("Auf Wiedersehen!");
+                laeuft = false;
             } else {
-                System.out.printf("❌ Falsch! Richtige Antwort: %d) %s%n",
-                        frage.richtigeAntwortIndex + 1,
-                        frage.antworten[frage.richtigeAntwortIndex]);
+                System.out.println("Falsche Eingabe! Bitte 1, 2 oder 3 wählen.");
             }
         }
-
-        // --- Ergebnis anzeigen ---
-        System.out.println();
-        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        System.out.println("🏆 SPIELENDE – Ihr Ergebnis:");
-        System.out.printf("   Spieler           : %s%n", spielerName);
-        System.out.printf("   Richtige Antworten: %d von %d%n", richtigeAntworten, rundenFragen.size());
-        System.out.printf("   Punkte gesamt     : %d%n", punkteGesamt);
-        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-        // --- Highscore dauerhaft speichern ---
-        speichereHighscore(spielerName, punkteGesamt);
     }
 
     // =========================================================
-    //  FRAGEN LADEN
+    // 2. PRAXEDE: SPIELLOGIK & FACHAUSWAHL
     // =========================================================
+    public static void spieleQuiz() {
+        // Mahmouds Methode aufrufen
+        List<String> alleFragen = ladeFragen();
 
-    /**
-     * Liest alle gültigen Fragen aus der angegebenen Datei (UTF-8) und
-     * gibt sie als Liste zurück.
-     *
-     * <p>Erwartetes Dateiformat pro Zeile (Semikolon-getrennt):<br>
-     * {@code Frage;Antwort1;Antwort2;Antwort3;Antwort4;RichtigeNummer(1-4)}</p>
-     *
-     * <p>Verarbeitungsregeln:</p>
-     * <ul>
-     *   <li>Zeilen, die mit {@code #} beginnen, werden als Kommentare ignoriert.</li>
-     *   <li>Leere Zeilen werden ignoriert.</li>
-     *   <li>Zeilen mit falscher Spaltenzahl → Warnung, Zeile übersprungen.</li>
-     *   <li>Ungültige Antwort-Nummer → Warnung, Zeile übersprungen.</li>
-     *   <li>Datei nicht vorhanden → Fehlermeldung, leere Liste zurückgeben.</li>
-     * </ul>
-     *
-     * @param dateiname Pfad zur Fragendatei.
-     * @return Liste aller erfolgreich geladenen {@link Frage}-Objekte. Bei
-     *         Fehler oder keiner gültigen Frage eine leere Liste.
-     */
-    static List<Frage> ladeFragen(String dateiname) {
-        List<Frage> fragen = new ArrayList<>();
-        File datei = new File(dateiname);
-
-        if (!datei.exists()) {
-            System.out.println("❌ FEHLER: Fragendatei nicht gefunden: " + dateiname);
-            return fragen;
+        if (alleFragen.size() == 0) {
+            System.out.println("Fehler: Keine Fragen gefunden.");
+            return;
         }
 
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(datei), StandardCharsets.UTF_8))) {
+        // Fächer herausfinden (ohne doppelte Nennungen)
+        List<String> faecher = new ArrayList<>();
+        for (int i = 0; i < alleFragen.size(); i++) {
+            String zeile = alleFragen.get(i);
+            String fach = zeile.split(";")[0];
+            if (!faecher.contains(fach)) {
+                faecher.add(fach);
+            }
+        }
 
-            String zeile;
-            int zeilenNummer = 0;
+        // User Story 1: Fach auswählen
+        System.out.println("\n--- FACH AUSWÄHLEN ---");
+        for (int i = 0; i < faecher.size(); i++) {
+            System.out.println((i + 1) + ") " + faecher.get(i));
+        }
+        System.out.print("Wähle eine Nummer: ");
 
-            while ((zeile = reader.readLine()) != null) {
-                zeilenNummer++;
-                zeile = zeile.trim();
+        int fachWahl = 0;
+        try {
+            fachWahl = Integer.parseInt(scanner.nextLine());
+        } catch (Exception e) {
+            System.out.println("Ungültige Eingabe!");
+            return;
+        }
 
-                // Kommentare und Leerzeilen überspringen
-                if (zeile.isEmpty() || zeile.startsWith("#")) {
-                    continue;
-                }
+        if (fachWahl < 1 || fachWahl > faecher.size()) {
+            System.out.println("Ungültige Zahl!");
+            return;
+        }
 
-                // Felder aufteilen (limit -1 → nachgestellte Leerfelder behalten)
-                String[] felder = zeile.split(";", -1);
+        String gewaehltesFach = faecher.get(fachWahl - 1);
 
-                // Validierung: genau 6 Felder erwartet
-                if (felder.length != 6) {
-                    System.out.printf("⚠️  Warnung (Zeile %d): Falsche Spaltenzahl (%d statt 6) – Zeile übersprungen.%n",
-                            zeilenNummer, felder.length);
-                    continue;
-                }
+        // Fragen für das gewählte Fach filtern
+        List<String> gefilterteFragen = new ArrayList<>();
+        for (int i = 0; i < alleFragen.size(); i++) {
+            String zeile = alleFragen.get(i);
+            if (zeile.startsWith(gewaehltesFach + ";")) {
+                gefilterteFragen.add(zeile);
+            }
+        }
 
-                String frageText = felder[0].trim();
-                String[] antworten = {
-                    felder[1].trim(),
-                    felder[2].trim(),
-                    felder[3].trim(),
-                    felder[4].trim()
-                };
+        // Namen abfragen
+        System.out.print("\nDein Name: ");
+        String name = scanner.nextLine();
+        if (name.equals("")) {
+            name = "Anonym";
+        }
 
-                // Antwort-Nummer parsen
-                int richtigeNummer;
-                try {
-                    richtigeNummer = Integer.parseInt(felder[5].trim());
-                } catch (NumberFormatException e) {
-                    System.out.printf("⚠️  Warnung (Zeile %d): Ungültige Antwort-Nummer \"%s\" – Zeile übersprungen.%n",
-                            zeilenNummer, felder[5].trim());
-                    continue;
-                }
+        int punkte = 0;
 
-                // Validierung: Nummer muss 1–4 sein
-                if (richtigeNummer < 1 || richtigeNummer > 4) {
-                    System.out.printf(
-                            "⚠️  Warnung (Zeile %d): Antwort-Nummer %d liegt außerhalb des Bereichs 1-4 – Zeile übersprungen.%n",
-                            zeilenNummer, richtigeNummer);
-                    continue;
-                }
+        System.out.println("\nViel Erfolg, " + name + "!");
 
-                fragen.add(new Frage(frageText, antworten, richtigeNummer - 1));
+        // Fragen stellen
+        for (int i = 0; i < gefilterteFragen.size(); i++) {
+            String zeile = gefilterteFragen.get(i);
+            String[] teile = zeile.split(";");
+
+            // teile[0] = Fach, teile[1] = Frage, teile[2-5] = Antworten, teile[6] = Richtige
+            String frage = teile[1];
+            String antwort1 = teile[2];
+            String antwort2 = teile[3];
+            String antwort3 = teile[4];
+            String antwort4 = teile[5];
+            int richtige = Integer.parseInt(teile[6]);
+
+            System.out.println("\nFrage " + (i + 1) + ": " + frage);
+            System.out.println("1) " + antwort1);
+            System.out.println("2) " + antwort2);
+            System.out.println("3) " + antwort3);
+            System.out.println("4) " + antwort4);
+            System.out.print("Deine Antwort (1-4): ");
+
+            int antwort = 0;
+            try {
+                antwort = Integer.parseInt(scanner.nextLine());
+            } catch (Exception e) {
+                System.out.println("Ungültige Eingabe! Zählt als falsch.");
             }
 
-        } catch (IOException e) {
-            System.out.println("❌ FEHLER beim Lesen der Fragendatei: " + e.getMessage());
+            if (antwort == richtige) {
+                System.out.println("Richtig!");
+                punkte++;
+            } else {
+                System.out.println("Falsch! Richtig wäre: " + richtige);
+            }
         }
 
-        System.out.printf("📂 %d Fragen erfolgreich geladen aus: %s%n", fragen.size(), dateiname);
+        // User Story 4: Ergebnis
+        System.out.println("\n=== ERGEBNIS ===");
+        System.out.println("Spieler: " + name);
+        System.out.println("Punkte: " + punkte + " von " + gefilterteFragen.size());
+
+        // Mahmouds Methode aufrufen
+        speichereHighscore(name, punkte);
+    }
+
+    // =========================================================
+    // 3. MAHMOUD: DATEIEN LESEN UND SCHREIBEN
+    // =========================================================
+    public static List<String> ladeFragen() {
+        List<String> fragen = new ArrayList<>();
+        try {
+            FileReader fr = new FileReader(FRAGEN_DATEI);
+            BufferedReader br = new BufferedReader(fr);
+
+            String zeile = br.readLine();
+            while (zeile != null) {
+                if (zeile.length() > 0 && !zeile.startsWith("#")) {
+                    fragen.add(zeile);
+                }
+                zeile = br.readLine();
+            }
+            br.close();
+        } catch (Exception e) {
+            System.out.println("Fehler beim Lesen der Datei: " + e.getMessage());
+        }
         return fragen;
     }
 
-    // =========================================================
-    //  HIGHSCORE SPEICHERN
-    // =========================================================
+    public static void speichereHighscore(String name, int punkte) {
+        try {
+            // "true" bedeutet: Daten hinten anhängen, nicht überschreiben
+            FileWriter fw = new FileWriter(HIGHSCORE_DATEI, true);
+            BufferedWriter bw = new BufferedWriter(fw);
 
-    /**
-     * Speichert einen neuen Highscore-Eintrag am Ende der Highscore-Datei (Append-Modus).
-     *
-     * <p>Bestehende Einträge bleiben dabei erhalten. Falls der Ordner
-     * {@code data/} noch nicht existiert, wird er automatisch erstellt.
-     * Das Format eines Eintrags lautet: {@code Name;Punkte}</p>
-     *
-     * @param name   Name des Spielers (darf Leerzeichen enthalten, aber kein Semikolon).
-     * @param punkte Erreichte Punktzahl (nicht-negativ).
-     */
-    static void speichereHighscore(String name, int punkte) {
-        // Ordner anlegen, falls er nicht existiert
-        File datei = new File(HIGHSCORE_DATEI);
-        File ordner = datei.getParentFile();
+            bw.write(name + ";" + punkte);
+            bw.newLine();
+            bw.close();
 
-        if (ordner != null && !ordner.exists()) {
-            if (ordner.mkdirs()) {
-                System.out.println("📁 Ordner \"data\" wurde automatisch erstellt.");
-            } else {
-                System.out.println("❌ FEHLER: Ordner \"data\" konnte nicht erstellt werden. Highscore nicht gespeichert.");
-                return;
-            }
-        }
-
-        // Eintrag anhängen (append = true erhält alle bisherigen Einträge)
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(datei, true), StandardCharsets.UTF_8))) {
-
-            writer.write(name + ";" + punkte);
-            writer.newLine();
-            System.out.printf("💾 Highscore gespeichert: %s – %d Punkt(e).%n", name, punkte);
-
-        } catch (IOException e) {
-            System.out.println("❌ FEHLER beim Speichern des Highscores: " + e.getMessage());
+            System.out.println("Highscore gespeichert!");
+        } catch (Exception e) {
+            System.out.println("Fehler beim Speichern: " + e.getMessage());
         }
     }
 
     // =========================================================
-    //  HIGHSCORES ANZEIGEN
+    // 4. MELINA: HIGHSCORES ANZEIGEN UND SORTIEREN
     // =========================================================
+    public static void zeigeHighscores() {
+        List<String> zeilen = new ArrayList<>();
 
-    /**
-     * Liest alle Highscore-Einträge aus der Highscore-Datei, sortiert sie
-     * absteigend nach Punkten und gibt die besten {@value #TOP_LISTE} Einträge
-     * formatiert auf der Konsole aus.
-     *
-     * <p>Verarbeitungsregeln:</p>
-     * <ul>
-     *   <li>Datei nicht vorhanden → Hinweis, kein Absturz.</li>
-     *   <li>Leere Zeilen und Kommentarzeilen werden ignoriert.</li>
-     *   <li>Ungültige Zeilen → Warnung, Zeile übersprungen.</li>
-     * </ul>
-     */
-    static void zeigeHighscores() {
-        System.out.println();
-        System.out.println("┌──────────────────────────────────────┐");
-        System.out.println("│       🏆  TOP-HIGHSCORES  🏆         │");
-        System.out.println("└──────────────────────────────────────┘");
+        try {
+            FileReader fr = new FileReader(HIGHSCORE_DATEI);
+            BufferedReader br = new BufferedReader(fr);
 
-        File datei = new File(HIGHSCORE_DATEI);
-
-        if (!datei.exists()) {
-            System.out.println("ℹ️  Noch keine Highscores vorhanden. Spielen Sie erst eine Runde!");
-            return;
-        }
-
-        List<HighscoreEintrag> eintraege = new ArrayList<>();
-
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(datei), StandardCharsets.UTF_8))) {
-
-            String zeile;
-            int zeilenNummer = 0;
-
-            while ((zeile = reader.readLine()) != null) {
-                zeilenNummer++;
-                zeile = zeile.trim();
-
-                // Leerzeilen und Kommentare überspringen
-                if (zeile.isEmpty() || zeile.startsWith("#")) {
-                    continue;
+            String zeile = br.readLine();
+            while (zeile != null) {
+                if (zeile.length() > 0) {
+                    zeilen.add(zeile);
                 }
-
-                String[] felder = zeile.split(";", -1);
-
-                if (felder.length != 2) {
-                    System.out.printf("⚠️  Warnung (Highscore-Zeile %d): Ungültiges Format – übersprungen.%n",
-                            zeilenNummer);
-                    continue;
-                }
-
-                String spielerName = felder[0].trim();
-                int punkteWert;
-
-                try {
-                    punkteWert = Integer.parseInt(felder[1].trim());
-                } catch (NumberFormatException e) {
-                    System.out.printf("⚠️  Warnung (Highscore-Zeile %d): Ungültige Punktzahl \"%s\" – übersprungen.%n",
-                            zeilenNummer, felder[1].trim());
-                    continue;
-                }
-
-                eintraege.add(new HighscoreEintrag(spielerName, punkteWert));
+                zeile = br.readLine();
             }
-
-        } catch (IOException e) {
-            System.out.println("❌ FEHLER beim Lesen der Highscore-Datei: " + e.getMessage());
+            br.close();
+        } catch (Exception e) {
+            System.out.println("Noch keine Highscores vorhanden.");
             return;
         }
 
-        if (eintraege.isEmpty()) {
-            System.out.println("ℹ️  Die Highscore-Datei enthält keine gültigen Einträge.");
-            return;
+        // Ganz einfache Sortierung (Bubble Sort) - ohne komplizierte Technik!
+        for (int i = 0; i < zeilen.size(); i++) {
+            for (int j = 0; j < zeilen.size() - 1 - i; j++) {
+                // Punkte auslesen
+                int punkte1 = Integer.parseInt(zeilen.get(j).split(";")[1]);
+                int punkte2 = Integer.parseInt(zeilen.get(j + 1).split(";")[1]);
+
+                // Wenn der nächste mehr Punkte hat, tauschen wir
+                if (punkte1 < punkte2) {
+                    String temp = zeilen.get(j);
+                    zeilen.set(j, zeilen.get(j + 1));
+                    zeilen.set(j + 1, temp);
+                }
+            }
         }
 
-        // Absteigend nach Punkten sortieren
-        Collections.sort(eintraege);
+        System.out.println("\n--- TOP 5 HIGHSCORES ---");
+        for (int i = 0; i < zeilen.size(); i++) {
+            if (i == 5) break; // Nur die besten 5 zeigen
 
-        // Top-Liste ausgeben
-        int anzahlAusgabe = Math.min(TOP_LISTE, eintraege.size());
-        System.out.printf("%-9s %-20s %s%n", "Rang", "Name", "Punkte");
-        System.out.println("─".repeat(42));
-
-        for (int i = 0; i < anzahlAusgabe; i++) {
-            HighscoreEintrag eintrag = eintraege.get(i);
-            String rang = switch (i) {
-                case 0 -> "🥇  1.";
-                case 1 -> "🥈  2.";
-                case 2 -> "🥉  3.";
-                default -> "    " + (i + 1) + ".";
-            };
-            System.out.printf("%-12s %-20s %d%n", rang, eintrag.name, eintrag.punkte);
+            String[] teile = zeilen.get(i).split(";");
+            System.out.println((i + 1) + ". " + teile[0] + " - " + teile[1] + " Punkte");
         }
-
-        System.out.println("─".repeat(42));
     }
 }
