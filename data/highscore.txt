@@ -1,0 +1,5 @@
+Max;3
+TestSpieler;0
+Anna;1
+ali;7
+Mewiufgie;4

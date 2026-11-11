@@ -1,0 +1,38 @@
+# Format: Frage;Antwort1;Antwort2;Antwort3;Antwort4;RichtigeNummer(1-4)
+# Zeilen mit # sind Kommentare und werden ignoriert.
+# Leere Zeilen werden ebenfalls ignoriert.
+#
+# ============================================================
+#  ALLGEMEINWISSEN
+# ============================================================
+
+Was ist die Hauptstadt von Deutschland?;Berlin;München;Hamburg;Köln;1
+Welches ist das größte Land der Erde (nach Fläche)?;USA;Russland;China;Kanada;2
+In welchem Jahr begann der Zweite Weltkrieg?;1935;1937;1939;1941;3
+Wie viele Kontinente gibt es auf der Erde?;5;6;7;8;3
+Welches chemische Symbol steht für Gold?;Go;Gd;Ag;Au;4
+Wie viele Stunden hat ein Tag?;12;24;36;48;2
+Welches Tier ist das schnellste Landtier der Welt?;Gepard;Löwe;Pferd;Adler;1
+Welche Sprache wird in Brasilien gesprochen?;Spanisch;Englisch;Portugiesisch;Französisch;3
+Wer malte die Mona Lisa?;Michelangelo;Raffael;Leonardo da Vinci;Donatello;3
+Wie viele Spieler hat eine Fußball-Mannschaft auf dem Feld?;9;10;11;12;3
+
+# ============================================================
+#  JAVA-GRUNDLAGEN
+# ============================================================
+
+Welches Keyword definiert eine Klasse in Java?;function;class;struct;def;2
+Mit welchem Keyword deklariert man in Java eine Konstante?;const;final;static;immutable;2
+Welche Methode startet ein Java-Programm?;start();main();run();init();2
+Wie viele Bytes hat ein int in Java?;2;4;8;16;2
+Welches Paket enthält ArrayList?;java.util;java.io;java.lang;java.net;1
+Welche Schleife läuft garantiert mindestens einmal?;for;while;do-while;foreach;3
+Welche Dateiendung hat eine Java-Quelldatei?;.class;.java;.jar;.txt;2
+Was bedeutet OOP?;Object Oriented Programming;Open Office Program;Only One Program;Output Oriented Process;1
+Wie viele Primzahlen liegen zwischen 1 und 10?;3;4;5;6;2
+Was ist der Rückgabetyp einer Methode, die nichts zurückgibt?;null;empty;void;none;3
+Welches Interface ermöglicht das Sortieren eigener Klassen in Java?;Sortable;Orderable;Comparable;Iterable;3
+Was bewirkt das Keyword "static" in Java?;Methode kann überschrieben werden;Element gehört zur Klasse statt zur Instanz;Element ist unveränderlich;Element ist privat;2
+Welche Collection erlaubt keine doppelten Einträge?;ArrayList;LinkedList;HashSet;TreeMap;3
+Wie wird in Java eine Ausnahme ausgelöst?;raise Exception;throw new Exception();error();Exception.throw();2
+Was ist der Standardwert eines int-Feldes in Java?;null;-1;0;undefined;3
